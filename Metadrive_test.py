@@ -19,7 +19,7 @@ from metadrive.component.map.base_map import BaseMap
 from metadrive.component.map.pg_map import MapGenerateMethod
 
 
-PRINT_IMG = True
+PRINT_IMG = False
 SAMPLING_INTERVAL = 10
 
 
@@ -41,7 +41,7 @@ if __name__ == "__main__":
         random_lane_num=False,
         map_config={
             BaseMap.GENERATE_TYPE: MapGenerateMethod.BIG_BLOCK_SEQUENCE,
-            BaseMap.GENERATE_CONFIG: "SCCCCSCCCCCSCCCCC",  # it can be a file path / block num / block ID sequence
+            BaseMap.GENERATE_CONFIG: "SCCCSCCC",  # it can be a file path / block num / block ID sequence
             BaseMap.LANE_WIDTH: 3.5,
             BaseMap.LANE_NUM: 1,
             "exit_length": 50,
@@ -70,7 +70,7 @@ if __name__ == "__main__":
                 img = np.squeeze(o['image'][:,:,:,0]*255).astype(np.uint8)
                 img = img[...,::-1].copy() # convert to rgb
                 img = Image.fromarray(img)
-                root_dir = os.path.join(os.getcwd(), 'dataset')
+                root_dir = os.path.join(os.getcwd(), 'dataset', 'val')
                 img_path = os.path.join(root_dir, str(action_space) + ".png")
                 img.save(str(img_path))
 
