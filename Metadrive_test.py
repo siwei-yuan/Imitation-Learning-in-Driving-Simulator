@@ -14,6 +14,10 @@ from PIL import Image
 from metadrive import MetaDriveEnv
 from metadrive.constants import HELP_MESSAGE
 
+from metadrive.component.algorithm.blocks_prob_dist import PGBlockDistConfig
+from metadrive.component.map.base_map import BaseMap
+from metadrive.component.map.pg_map import MapGenerateMethod
+
 
 PRINT_IMG = True
 SAMPLING_INTERVAL = 10
@@ -25,16 +29,23 @@ if __name__ == "__main__":
         use_render=True,
         offscreen_render=True,
         manual_control=True,
-        traffic_density=0.1,
+        traffic_density=0,
         environment_num=100,
         random_agent_model=False,
-        random_lane_width=True,
-        random_lane_num=True,
-        map=4,  # seven block
         start_seed=random.randint(0, 1000),
         vehicle_config = dict(image_source="rgb_camera", 
-                              rgb_camera= (256 , 128),
-                              stack_size=1)
+                              rgb_camera= (128 , 128),
+                              stack_size=1),
+        block_dist_config=PGBlockDistConfig,
+        random_lane_width=True,
+        random_lane_num=False,
+        map_config={
+            BaseMap.GENERATE_TYPE: MapGenerateMethod.BIG_BLOCK_SEQUENCE,
+            BaseMap.GENERATE_CONFIG: "SCCCCSCCCCCSCCCCC",  # it can be a file path / block num / block ID sequence
+            BaseMap.LANE_WIDTH: 3.5,
+            BaseMap.LANE_NUM: 1,
+            "exit_length": 50,
+    },
     )
     env = MetaDriveEnv(config)
     try:
@@ -43,12 +54,13 @@ if __name__ == "__main__":
         env.vehicle.expert_takeover = True
         assert isinstance(o, dict)
         print("The observation is a dict with numpy arrays as values: ", {k: v.shape for k, v in o.items()})
-        for i in range(1, 20):
+        #for i in range(1, 31):
+        for i in range(1, 100000000000):
             o, r, d, info = env.step([0, 0])
             
             # Action space is of form (float, float) -> Tuple
             # It encodes the necessary info about vehicle movement
-            action_space = (info['steering'], info['acceleration'])
+            action_space = (info['steering'], info['acceleration'], info['velocity'])
             print(action_space)
 
             # Change PRINT_IMG to True if recording FPV
@@ -57,7 +69,6 @@ if __name__ == "__main__":
             if PRINT_IMG and i%SAMPLING_INTERVAL == 0:
                 img = np.squeeze(o['image'][:,:,:,0]*255).astype(np.uint8)
                 img = img[...,::-1].copy() # convert to rgb
-                print(img.shape)
                 img = Image.fromarray(img)
                 root_dir = os.path.join(os.getcwd(), 'dataset')
                 img_path = os.path.join(root_dir, str(action_space) + ".png")
