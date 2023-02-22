@@ -10,6 +10,7 @@ environment that allows popping up an window.
 import random
 import os
 import numpy as np
+import torch
 from PIL import Image
 from metadrive import MetaDriveEnv
 from metadrive.constants import HELP_MESSAGE
@@ -18,6 +19,7 @@ from metadrive.component.algorithm.blocks_prob_dist import PGBlockDistConfig
 from metadrive.component.map.base_map import BaseMap
 from metadrive.component.map.pg_map import MapGenerateMethod
 
+from rgb_policy import RGBPolicy
 
 PRINT_IMG = False
 SAMPLING_INTERVAL = 10
@@ -45,7 +47,8 @@ if __name__ == "__main__":
             BaseMap.LANE_WIDTH: 3.5,
             BaseMap.LANE_NUM: 1,
             "exit_length": 50,
-    },
+        },
+        agent_policy=RGBPolicy
     )
     env = MetaDriveEnv(config)
     try:
