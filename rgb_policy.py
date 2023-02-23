@@ -6,6 +6,8 @@ from metadrive.policy.manual_control_policy import ManualControlPolicy
 from metadrive.utils.math_utils import not_zero, wrap_to_pi
 from model import Resnet
 import torch
+from torchvision import transforms
+from torchvision.utils import save_image
 
 class RGBPolicy(BasePolicy):
 
@@ -30,8 +32,18 @@ class RGBPolicy(BasePolicy):
         # OnscreenImage(image = myTextureObject)
 
         # PNMImage to tensor
+        img = self.__convert_img_to_tensor(img)
 
-        return self.model(img)
+        data_transform = transforms.Compose([
+            transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))
+        ])
+        img = data_transform(img)
+
+        action = self.model(img)[0].detach().numpy()
+        action[0] = action[0]/100
+        action[1] = action[1]/10
+
+        return action
 
     def steering_control(self, target_lane) -> float:
         # heading control following a lateral distance control
@@ -60,4 +72,17 @@ class RGBPolicy(BasePolicy):
         self.routing_target_lane = None
         self.available_routing_index_range = None
         self.overtake_timer = self.np_random.randint(0, self.LANE_CHANGE_FREQ)
- 
+
+    def __convert_img_to_tensor(self, img):
+        height = img.get_read_x_size()
+        width = img.get_read_y_size()
+
+        img_tensor = torch.zeros((1, 3, height, width))
+
+        for x in range(height):
+            for y in range(width):
+                img_tensor[0,0,y,x] = img.get_red(x,y)
+                img_tensor[0,1,y,x] = img.get_green(x,y)
+                img_tensor[0,2,y,x] = img.get_blue(x,y)
+        
+        return img_tensor
