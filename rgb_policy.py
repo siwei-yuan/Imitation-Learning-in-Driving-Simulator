@@ -8,6 +8,8 @@ from model import Resnet
 import torch
 from torchvision import transforms
 from torchvision.utils import save_image
+from panda3d.core import Texture
+from direct.gui.OnscreenImage import OnscreenImage
 
 class RGBPolicy(BasePolicy):
 
@@ -17,31 +19,35 @@ class RGBPolicy(BasePolicy):
     def __init__(self, control_object, random_seed):
         super(RGBPolicy, self).__init__(control_object=control_object, random_seed=random_seed)
         self.model = Resnet(mode='linear',pretrained=True)
-        checkpoint = torch.load(self.PATH)
+        checkpoint = torch.load(self.PATH, map_location=torch.device('cpu'))
         self.model.load_state_dict(checkpoint['model_state_dict'])
         # self.target_speed = self.NORMAL_SPEED
 
     def act(self, *args, **kwargs):
         # all_objects = self.control_object.lidar.get_surrounding_objects(self.control_object)
 
-        # img: PNMImage
         img = self.control_object.image_sensors["rgb_camera"].get_image(self.control_object)
-        print(img)
-        # myTextureObject = Texture()
-        # myTextureObject.load(img)
-        # OnscreenImage(image = myTextureObject)
+
+        myTextureObject = Texture()
+        myTextureObject.load(img)
+        #OnscreenImage(image = myTextureObject
 
         # PNMImage to tensor
-        img = self.__convert_img_to_tensor(img)
+        img = self.__convert_img_to_tensor(myTextureObject)
 
         data_transform = transforms.Compose([
+            transforms.Resize((96,96)),
             transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))
         ])
         img = data_transform(img)
 
         action = self.model(img)[0].detach().numpy()
-        action[0] = action[0]/100
-        action[1] = action[1]/10
+
+        action[0] = action[0]*0.06545050570131895 + 0.005975310273351187
+        action[1] = action[1]*0.37149717438120655 + 0.3121460530513671
+
+        print("MODEL PREDICTION:")
+        print(action)
 
         return action
 
@@ -73,16 +79,15 @@ class RGBPolicy(BasePolicy):
         self.available_routing_index_range = None
         self.overtake_timer = self.np_random.randint(0, self.LANE_CHANGE_FREQ)
 
-    def __convert_img_to_tensor(self, img):
-        height = img.get_read_x_size()
-        width = img.get_read_y_size()
+    def __convert_img_to_tensor(self, myTextureObject):
 
-        img_tensor = torch.zeros((1, 3, height, width))
+        img = np.frombuffer(myTextureObject.getRamImageAs("RGBA").getData(), dtype=np.uint8)
+        img = img.reshape((myTextureObject.getYSize(), myTextureObject.getXSize(), 4))
+        img = img[::-1]
+        img = img[...,:-1] - np.zeros_like((128,128,3))
+        img = torch.from_numpy(img)
+        img = img/255
+        img = img.permute(2, 0, 1)
+        img = torch.unsqueeze(img, 0)
 
-        for x in range(height):
-            for y in range(width):
-                img_tensor[0,0,y,x] = img.get_red(x,y)
-                img_tensor[0,1,y,x] = img.get_green(x,y)
-                img_tensor[0,2,y,x] = img.get_blue(x,y)
-        
-        return img_tensor
+        return img

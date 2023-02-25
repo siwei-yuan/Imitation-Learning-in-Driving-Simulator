@@ -51,6 +51,8 @@ if __name__ == "__main__":
         agent_policy=RGBPolicy
     )
     env = MetaDriveEnv(config)
+
+    imgs = []
     try:
         o = env.reset()
         print(HELP_MESSAGE)
@@ -58,14 +60,14 @@ if __name__ == "__main__":
         assert isinstance(o, dict)
         print("The observation is a dict with numpy arrays as values: ", {k: v.shape for k, v in o.items()})
         #for i in range(1, 31):
-        for i in range(1, 100000000000):
+        for i in range(1, 200):
             o, r, d, info = env.step([0, 0])
             
             # Action space is of form (float, float) -> Tuple
             # It encodes the necessary info about vehicle movement
             action_space = (info['steering'], info['acceleration'], info['velocity'])
-            print(action_space)
-
+            #print(action_space)
+            
             # Change PRINT_IMG to True if recording FPV
             # Change step_size to set sampling rate
             # Image saved is named by the action
@@ -76,6 +78,7 @@ if __name__ == "__main__":
                 root_dir = os.path.join(os.getcwd(), 'dataset', 'val')
                 img_path = os.path.join(root_dir, str(action_space) + ".png")
                 img.save(str(img_path))
+            
 
             env.render(
                 text={
@@ -85,6 +88,9 @@ if __name__ == "__main__":
             if d and info["arrive_dest"]:
                 env.reset()
                 env.current_track_vehicle.expert_takeover = True
+
+        # imgs[0].save("demo.gif", save_all=True, append_images=imgs[1:], duration=50, loop=0)
+
     except Exception as e:
         raise e
     finally:
