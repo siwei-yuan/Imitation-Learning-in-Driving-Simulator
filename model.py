@@ -47,3 +47,31 @@ class Resnet(nn.Module):
     
     def to(self,device):
         return self.resnet.to(device=device)
+    
+
+class Resnet_Categorize(nn.Module):
+    def __init__(self, mode='linear',pretrained=True):
+        super().__init__()
+        self.resnet = None
+        self.resnet = models.resnet18(pretrained = pretrained)
+
+        if mode == 'feature':
+          self.resnet.fc = nn.Identity()
+        
+        if mode == 'linear':
+          for param in self.resnet.parameters():
+            param.requires_grad = False
+          self.resnet.fc = nn.Linear(512, 3)
+
+        if mode == 'finetune':
+          for param in self.resnet.parameters():
+            param.requires_grad = True
+          self.resnet.fc = nn.Linear(512, 3)
+    #####################################################################################
+
+    def forward(self, x):
+
+        return self.resnet(x)
+    
+    def to(self,device):
+        return self.resnet.to(device=device)

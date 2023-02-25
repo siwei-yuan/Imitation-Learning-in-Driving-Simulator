@@ -4,24 +4,29 @@ from metadrive.component.vehicle_module.PID_controller import PIDController
 from metadrive.policy.base_policy import BasePolicy
 from metadrive.policy.manual_control_policy import ManualControlPolicy
 from metadrive.utils.math_utils import not_zero, wrap_to_pi
-from model import Resnet
+from model import Resnet, Resnet_Categorize
 import torch
 from torchvision import transforms
 from torchvision.utils import save_image
 from panda3d.core import Texture
 from direct.gui.OnscreenImage import OnscreenImage
 
+
 class RGBPolicy(BasePolicy):
 
     MAX_SPEED = 10
-    PATH = "model.pt"
+    PATH = "model_categorize_revised.pt"
     
     def __init__(self, control_object, random_seed):
         super(RGBPolicy, self).__init__(control_object=control_object, random_seed=random_seed)
-        self.model = Resnet(mode='linear',pretrained=True)
-        checkpoint = torch.load(self.PATH, map_location=torch.device('cpu'))
-        self.model.load_state_dict(checkpoint['model_state_dict'])
+        # self.model = Resnet_Categorize(mode='linear',pretrained=True)
+        # checkpoint = torch.load(self.PATH, map_location=torch.device('cpu'))
+        # self.model.load_state_dict(checkpoint['model_state_dict'])
         # self.target_speed = self.NORMAL_SPEED
+
+        self.model = Resnet_Categorize()
+        self.model.load_state_dict(torch.load(RGBPolicy.PATH, map_location=torch.device('cpu')))
+        self.model.eval()
 
     def act(self, *args, **kwargs):
         # all_objects = self.control_object.lidar.get_surrounding_objects(self.control_object)
@@ -36,18 +41,41 @@ class RGBPolicy(BasePolicy):
         img = self.__convert_img_to_tensor(myTextureObject)
 
         data_transform = transforms.Compose([
-            transforms.Resize((96,96)),
+            transforms.CenterCrop((96,96)),
             transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))
         ])
         img = data_transform(img)
 
-        action = self.model(img)[0].detach().numpy()
+        # From the notebook
+        mapping = {
+            0: (0.12388312854632436, 0.2091152917264203),
+            1: (-0.12438725769093287, 0.34663663748581514),
+            2: (-0.00500231837265083, 0.3247432458997098)}
 
-        action[0] = action[0]*0.06545050570131895 + 0.005975310273351187
-        action[1] = action[1]*0.37149717438120655 + 0.3121460530513671
+        if RGBPolicy.PATH == 'model.pt':
+            action = self.model(img)[0].detach().numpy()
 
-        print("MODEL PREDICTION:")
-        print(action)
+            action[0] = action[0]*0.06545050570131895 + 0.005975310273351187
+            action[1] = action[1]*0.37149717438120655 + 0.3121460530513671
+
+            print("MODEL PREDICTION:")
+            print(action)
+
+        elif 'categorize' in RGBPolicy.PATH:
+            logits = self.model(img)[0].detach().numpy()
+
+            # TODO: make those scaling factors learnable
+
+            logits[1] += 1.6
+            logits[2] -= 1.2
+            category = np.argmax(logits)
+
+            print("MODEL PREDICTION:")
+            print(logits)
+
+            action = np.zeros(2)
+            action[0] = mapping[category][0] * 1.1
+            action[1] = mapping[category][1]
 
         return action
 
