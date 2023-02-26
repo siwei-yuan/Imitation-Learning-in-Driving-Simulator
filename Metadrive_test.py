@@ -60,7 +60,7 @@ if __name__ == "__main__":
         assert isinstance(o, dict)
         print("The observation is a dict with numpy arrays as values: ", {k: v.shape for k, v in o.items()})
         #for i in range(1, 31):
-        for i in range(1, 200):
+        for i in range(1, 20000000):
             o, r, d, info = env.step([0, 0])
             
             # Action space is of form (float, float) -> Tuple
