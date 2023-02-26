@@ -14,8 +14,9 @@ from direct.gui.OnscreenImage import OnscreenImage
 
 class RGBPolicy(BasePolicy):
 
-    MAX_SPEED = 10
-    PATH = "model_categorize_revised.pt"
+    MAX_SPEED = 25
+    #PATH = "model_categorize_revised.pt"
+    PATH = "model.pt"
     
     def __init__(self, control_object, random_seed):
         super(RGBPolicy, self).__init__(control_object=control_object, random_seed=random_seed)
@@ -24,7 +25,10 @@ class RGBPolicy(BasePolicy):
         # self.model.load_state_dict(checkpoint['model_state_dict'])
         # self.target_speed = self.NORMAL_SPEED
 
-        self.model = Resnet_Categorize()
+        if 'categorize' in RGBPolicy.PATH:
+            self.model = Resnet_Categorize()
+        else:
+            self.model = Resnet()
         self.model.load_state_dict(torch.load(RGBPolicy.PATH, map_location=torch.device('cpu')))
         self.model.eval()
 
@@ -56,6 +60,7 @@ class RGBPolicy(BasePolicy):
             action = self.model(img)[0].detach().numpy()
 
             action[0] = action[0]*0.06545050570131895 + 0.005975310273351187
+            action[0] *= 2.3
             action[1] = action[1]*0.37149717438120655 + 0.3121460530513671
 
             print("MODEL PREDICTION:")
@@ -76,6 +81,9 @@ class RGBPolicy(BasePolicy):
             action = np.zeros(2)
             action[0] = mapping[category][0] * 1.1
             action[1] = mapping[category][1]
+
+        if self.control_object.speed > RGBPolicy.MAX_SPEED:
+            action[1] = 0
 
         return action
 
