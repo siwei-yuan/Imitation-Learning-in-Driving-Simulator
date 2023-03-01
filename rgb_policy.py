@@ -4,7 +4,7 @@ from metadrive.component.vehicle_module.PID_controller import PIDController
 from metadrive.policy.base_policy import BasePolicy
 from metadrive.policy.manual_control_policy import ManualControlPolicy
 from metadrive.utils.math_utils import not_zero, wrap_to_pi
-from model import Resnet, Resnet_Categorize
+from model import Resnet, Resnet_Categorize, ViT
 import torch
 from torchvision import transforms
 from torchvision.utils import save_image
@@ -14,9 +14,8 @@ from direct.gui.OnscreenImage import OnscreenImage
 
 class RGBPolicy(BasePolicy):
 
-    MAX_SPEED = 25
-    #PATH = "model_categorize_revised.pt"
-    PATH = "model.pt"
+    MAX_SPEED = 30
+    PATH = "model_vit.pt"
     
     def __init__(self, control_object, random_seed):
         super(RGBPolicy, self).__init__(control_object=control_object, random_seed=random_seed)
@@ -27,6 +26,19 @@ class RGBPolicy(BasePolicy):
 
         if 'categorize' in RGBPolicy.PATH:
             self.model = Resnet_Categorize()
+        elif 'vit' in RGBPolicy.PATH:
+            self.model = ViT(image_size = 128,
+                                patch_size = 16,
+                                num_classes = 2,
+                                dim = 192,
+                                depth = 8,
+                                heads = 4,
+                                dim_head = 48,
+                                mlp_dim = 768,
+                                pool = 'cls',
+                                dropout = 0.1,
+                                emb_dropout = 0.1
+                            )
         else:
             self.model = Resnet()
         self.model.load_state_dict(torch.load(RGBPolicy.PATH, map_location=torch.device('cpu')))
@@ -44,10 +56,15 @@ class RGBPolicy(BasePolicy):
         # PNMImage to tensor
         img = self.__convert_img_to_tensor(myTextureObject)
 
-        data_transform = transforms.Compose([
-            transforms.CenterCrop((96,96)),
-            transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))
-        ])
+        if 'vit' in RGBPolicy.PATH:
+            data_transform = transforms.Compose([
+                transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))
+            ])
+        else:
+            data_transform = transforms.Compose([
+                transforms.CenterCrop((96,96)),
+                transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))
+            ])
         img = data_transform(img)
 
         # From the notebook
@@ -56,21 +73,23 @@ class RGBPolicy(BasePolicy):
             1: (-0.12438725769093287, 0.34663663748581514),
             2: (-0.00500231837265083, 0.3247432458997098)}
 
-        if RGBPolicy.PATH == 'model.pt':
-            action = self.model(img)[0].detach().numpy()
-
-            action[0] = action[0]*0.06545050570131895 + 0.005975310273351187
-            action[0] *= 2.3
-            action[1] = action[1]*0.37149717438120655 + 0.3121460530513671
+        if 'categorize' not in RGBPolicy.PATH:
+            if 'vit' in RGBPolicy.PATH:
+                action = self.model(img).detach().numpy()
+                action[0] = action[0]*0.06545050570131895 + 0.005975310273351187
+                action[1] = action[1]*0.37149717438120655 + 0.3121460530513671
+            else:
+                action = self.model(img)[0].detach().numpy()
+                action[0] = action[0]*0.06545050570131895 + 0.005975310273351187
+                action[0] *= 2.3
+                action[1] = action[1]*0.37149717438120655 + 0.3121460530513671
 
             print("MODEL PREDICTION:")
             print(action)
 
-        elif 'categorize' in RGBPolicy.PATH:
+        else:
             logits = self.model(img)[0].detach().numpy()
-
             # TODO: make those scaling factors learnable
-
             logits[1] += 1.6
             logits[2] -= 1.2
             category = np.argmax(logits)
@@ -87,6 +106,7 @@ class RGBPolicy(BasePolicy):
 
         return action
 
+
     def steering_control(self, target_lane) -> float:
         # heading control following a lateral distance control
         ego_vehicle = self.control_object
@@ -96,6 +116,7 @@ class RGBPolicy(BasePolicy):
         steering = self.heading_pid.get_result(wrap_to_pi(lane_heading - v_heading))
         steering += self.lateral_pid.get_result(-lat)
         return float(steering)
+
 
     def acceleration(self, front_obj, dist_to_front) -> float:
         ego_vehicle = self.control_object
@@ -107,6 +128,7 @@ class RGBPolicy(BasePolicy):
             acceleration -= self.ACC_FACTOR * (speed_diff**2)
         return acceleration
 
+
     def reset(self):
         self.heading_pid.reset()
         self.lateral_pid.reset()
@@ -114,6 +136,7 @@ class RGBPolicy(BasePolicy):
         self.routing_target_lane = None
         self.available_routing_index_range = None
         self.overtake_timer = self.np_random.randint(0, self.LANE_CHANGE_FREQ)
+
 
     def __convert_img_to_tensor(self, myTextureObject):
 

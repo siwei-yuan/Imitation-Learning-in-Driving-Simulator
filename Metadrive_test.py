@@ -21,6 +21,8 @@ from metadrive.component.map.pg_map import MapGenerateMethod
 
 from rgb_policy import RGBPolicy
 
+import pygame
+
 PRINT_IMG = False
 SAMPLING_INTERVAL = 10
 
@@ -53,6 +55,7 @@ if __name__ == "__main__":
     env = MetaDriveEnv(config)
 
     imgs = []
+    frames = []
     try:
         o = env.reset()
         print(HELP_MESSAGE)
@@ -60,7 +63,7 @@ if __name__ == "__main__":
         assert isinstance(o, dict)
         print("The observation is a dict with numpy arrays as values: ", {k: v.shape for k, v in o.items()})
         #for i in range(1, 31):
-        for i in range(1, 20000000):
+        for i in range(1, 400000):
             o, r, d, info = env.step([0, 0])
             
             # Action space is of form (float, float) -> Tuple
@@ -89,7 +92,7 @@ if __name__ == "__main__":
                 env.reset()
                 env.current_track_vehicle.expert_takeover = True
 
-        # imgs[0].save("demo.gif", save_all=True, append_images=imgs[1:], duration=50, loop=0)
+        #imgs[0].save("demo2.gif", save_all=True, append_images=imgs[1:], duration=100, loop=0)
 
     except Exception as e:
         raise e
