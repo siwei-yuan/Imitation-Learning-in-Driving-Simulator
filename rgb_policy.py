@@ -120,6 +120,8 @@ class RGBPolicy(BasePolicy):
         if 'speed' in RGBPolicy.PATH:
             if self.control_object.speed > action[2]:
                 action[1] = 0
+            else:
+                action[1] = 20
         elif self.control_object.speed > RGBPolicy.MAX_SPEED:
             action[1] = 0
 
