@@ -4,7 +4,7 @@ from metadrive.component.vehicle_module.PID_controller import PIDController
 from metadrive.policy.base_policy import BasePolicy
 from metadrive.policy.manual_control_policy import ManualControlPolicy
 from metadrive.utils.math_utils import not_zero, wrap_to_pi
-from model import Resnet, Resnet_Categorize, ViT
+from model import Resnet, Resnet_Categorize, ViT, ViT_with_speed
 import torch
 from torchvision import transforms
 from torchvision.utils import save_image
@@ -14,8 +14,8 @@ from direct.gui.OnscreenImage import OnscreenImage
 
 class RGBPolicy(BasePolicy):
 
-    MAX_SPEED = 30
-    PATH = "model_vit.pt"
+    MAX_SPEED = 40
+    PATH = "model_vit_include_speed.pt"
     
     def __init__(self, control_object, random_seed):
         super(RGBPolicy, self).__init__(control_object=control_object, random_seed=random_seed)
@@ -26,7 +26,7 @@ class RGBPolicy(BasePolicy):
 
         if 'categorize' in RGBPolicy.PATH:
             self.model = Resnet_Categorize()
-        elif 'vit' in RGBPolicy.PATH:
+        elif 'model_vit.pt' == RGBPolicy.PATH:
             self.model = ViT(image_size = 128,
                                 patch_size = 16,
                                 num_classes = 2,
@@ -39,6 +39,20 @@ class RGBPolicy(BasePolicy):
                                 dropout = 0.1,
                                 emb_dropout = 0.1
                             )
+        elif 'model_vit_include_speed.pt' == RGBPolicy.PATH:
+            self.model = ViT_with_speed(image_size = 128,
+                                patch_size = 16,
+                                num_classes = 3,
+                                dim = 192,
+                                depth = 8,
+                                heads = 4,
+                                dim_head = 48,
+                                mlp_dim = 768,
+                                pool = 'cls',
+                                dropout = 0.1,
+                                emb_dropout = 0.1
+                            )
+
         else:
             self.model = Resnet()
         self.model.load_state_dict(torch.load(RGBPolicy.PATH, map_location=torch.device('cpu')))
@@ -78,6 +92,8 @@ class RGBPolicy(BasePolicy):
                 action = self.model(img).detach().numpy()
                 action[0] = action[0]*0.06545050570131895 + 0.005975310273351187
                 action[1] = action[1]*0.37149717438120655 + 0.3121460530513671
+                if 'speed' in RGBPolicy.PATH:
+                    action[2] = action[2]*7.530281593763722 + 37.55993530002824
             else:
                 action = self.model(img)[0].detach().numpy()
                 action[0] = action[0]*0.06545050570131895 + 0.005975310273351187
@@ -101,7 +117,10 @@ class RGBPolicy(BasePolicy):
             action[0] = mapping[category][0] * 1.1
             action[1] = mapping[category][1]
 
-        if self.control_object.speed > RGBPolicy.MAX_SPEED:
+        if 'speed' in RGBPolicy.PATH:
+            if self.control_object.speed > action[2]:
+                action[1] = 0
+        elif self.control_object.speed > RGBPolicy.MAX_SPEED:
             action[1] = 0
 
         return action

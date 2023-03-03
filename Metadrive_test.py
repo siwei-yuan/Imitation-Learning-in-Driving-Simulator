@@ -46,7 +46,7 @@ if __name__ == "__main__":
         map_config={
             BaseMap.GENERATE_TYPE: MapGenerateMethod.BIG_BLOCK_SEQUENCE,
             BaseMap.GENERATE_CONFIG: "CCCSCCC",  # it can be a file path / block num / block ID sequence
-            BaseMap.LANE_WIDTH: 3.5,
+            BaseMap.LANE_WIDTH: 4,
             BaseMap.LANE_NUM: 1,
             "exit_length": 50,
         },
