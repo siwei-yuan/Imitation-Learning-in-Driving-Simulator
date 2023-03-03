@@ -19,12 +19,12 @@ from metadrive.component.algorithm.blocks_prob_dist import PGBlockDistConfig
 from metadrive.component.map.base_map import BaseMap
 from metadrive.component.map.pg_map import MapGenerateMethod
 
-from rgb_policy import RGBPolicy
+# from rgb_policy import RGBPolicy
 
 import pygame
 
-PRINT_IMG = False
-SAMPLING_INTERVAL = 10
+PRINT_IMG = True
+SAMPLING_INTERVAL = 20
 
 
 if __name__ == "__main__":
@@ -33,7 +33,7 @@ if __name__ == "__main__":
         use_render=True,
         offscreen_render=True,
         manual_control=True,
-        traffic_density=0,
+        traffic_density=0.4,
         environment_num=100,
         random_agent_model=False,
         start_seed=random.randint(0, 1000),
@@ -50,7 +50,7 @@ if __name__ == "__main__":
             BaseMap.LANE_NUM: 1,
             "exit_length": 50,
         },
-        agent_policy=RGBPolicy
+        # agent_policy=RGBPolicy
     )
     env = MetaDriveEnv(config)
 
@@ -78,7 +78,7 @@ if __name__ == "__main__":
                 img = np.squeeze(o['image'][:,:,:,0]*255).astype(np.uint8)
                 img = img[...,::-1].copy() # convert to rgb
                 img = Image.fromarray(img)
-                root_dir = os.path.join(os.getcwd(), 'dataset', 'val')
+                root_dir = os.path.join(os.getcwd(), 'dataset_with_traffic', 'train')
                 img_path = os.path.join(root_dir, str(action_space) + ".png")
                 img.save(str(img_path))
             
