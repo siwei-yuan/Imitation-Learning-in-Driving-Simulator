@@ -15,7 +15,9 @@ from direct.gui.OnscreenImage import OnscreenImage
 class RGBPolicy(BasePolicy):
 
     MAX_SPEED = 40
-    PATH = "model_vit_include_speed.pt"
+    # PATH = "model.pt"
+    # PATH = "model_vit.pt"
+    PATH = "model_vit_include_speed_2k_grayscale.pt"
     
     def __init__(self, control_object, random_seed):
         super(RGBPolicy, self).__init__(control_object=control_object, random_seed=random_seed)
@@ -26,7 +28,7 @@ class RGBPolicy(BasePolicy):
 
         if 'categorize' in RGBPolicy.PATH:
             self.model = Resnet_Categorize()
-        elif 'model_vit.pt' == RGBPolicy.PATH:
+        elif 'model_vit.pt' ==  RGBPolicy.PATH or 'model_vit_2k.pt' ==  RGBPolicy.PATH:
             self.model = ViT(image_size = 128,
                                 patch_size = 16,
                                 num_classes = 2,
@@ -39,7 +41,7 @@ class RGBPolicy(BasePolicy):
                                 dropout = 0.1,
                                 emb_dropout = 0.1
                             )
-        elif 'model_vit_include_speed.pt' == RGBPolicy.PATH:
+        elif 'model_vit_include_speed' in RGBPolicy.PATH:
             self.model = ViT_with_speed(image_size = 128,
                                 patch_size = 16,
                                 num_classes = 3,
@@ -70,7 +72,12 @@ class RGBPolicy(BasePolicy):
         # PNMImage to tensor
         img = self.__convert_img_to_tensor(myTextureObject)
 
-        if 'vit' in RGBPolicy.PATH:
+        if 'grayscale' in RGBPolicy.PATH:
+            data_transform = transforms.Compose([
+                transforms.Grayscale(3),
+                transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))
+            ])
+        elif 'vit' in RGBPolicy.PATH:
             data_transform = transforms.Compose([
                 transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))
             ])
@@ -90,10 +97,11 @@ class RGBPolicy(BasePolicy):
         if 'categorize' not in RGBPolicy.PATH:
             if 'vit' in RGBPolicy.PATH:
                 action = self.model(img).detach().numpy()
-                action[0] = action[0]*0.06545050570131895 + 0.005975310273351187
-                action[1] = action[1]*0.37149717438120655 + 0.3121460530513671
+                action[0] = action[0]*0.06458930098761928 + 0.0027872782659134248
+                action[1] = action[1]*0.3710675398605016 + 0.2993908500203321
                 if 'speed' in RGBPolicy.PATH:
-                    action[2] = action[2]*7.530281593763722 + 37.55993530002824
+                    # action[0] = action[0]*0.85
+                    action[2] = action[2]*7.288086708484034 + 37.906848060080954
             else:
                 action = self.model(img)[0].detach().numpy()
                 action[0] = action[0]*0.06545050570131895 + 0.005975310273351187
@@ -118,10 +126,11 @@ class RGBPolicy(BasePolicy):
             action[1] = mapping[category][1]
 
         if 'speed' in RGBPolicy.PATH:
+            action[0] *= 0.9
             if self.control_object.speed > action[2]:
                 action[1] = 0
-            else:
-                action[1] = 20
+            elif action[1] > 0:
+                action[1] *= 10
         elif self.control_object.speed > RGBPolicy.MAX_SPEED:
             action[1] = 0
 

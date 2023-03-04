@@ -19,12 +19,13 @@ from metadrive.component.algorithm.blocks_prob_dist import PGBlockDistConfig
 from metadrive.component.map.base_map import BaseMap
 from metadrive.component.map.pg_map import MapGenerateMethod
 
-# from rgb_policy import RGBPolicy
+from rgb_policy import RGBPolicy
+from rgb_policy_V2 import RGBPolicy_V2
 
-import pygame
+import time
 
-PRINT_IMG = True
-SAMPLING_INTERVAL = 20
+PRINT_IMG = False
+SAMPLING_INTERVAL = 15
 
 
 if __name__ == "__main__":
@@ -33,7 +34,7 @@ if __name__ == "__main__":
         use_render=True,
         offscreen_render=True,
         manual_control=True,
-        traffic_density=0.4,
+        traffic_density=0,
         environment_num=100,
         random_agent_model=False,
         start_seed=random.randint(0, 1000),
@@ -41,21 +42,24 @@ if __name__ == "__main__":
                               rgb_camera= (128 , 128),
                               stack_size=1),
         block_dist_config=PGBlockDistConfig,
-        random_lane_width=True,
+        random_lane_width=False,
         random_lane_num=False,
         map_config={
             BaseMap.GENERATE_TYPE: MapGenerateMethod.BIG_BLOCK_SEQUENCE,
-            BaseMap.GENERATE_CONFIG: "CCCSCCC",  # it can be a file path / block num / block ID sequence
+            BaseMap.GENERATE_CONFIG: "SCCSCCS",  # it can be a file path / block num / block ID sequence
             BaseMap.LANE_WIDTH: 4,
             BaseMap.LANE_NUM: 1,
             "exit_length": 50,
         },
-        # agent_policy=RGBPolicy
+        agent_policy = RGBPolicy_V2
     )
     env = MetaDriveEnv(config)
 
     imgs = []
     frames = []
+
+    st = time.time()
+    cost = 0
     try:
         o = env.reset()
         print(HELP_MESSAGE)
@@ -63,8 +67,10 @@ if __name__ == "__main__":
         assert isinstance(o, dict)
         print("The observation is a dict with numpy arrays as values: ", {k: v.shape for k, v in o.items()})
         #for i in range(1, 31):
-        for i in range(1, 400000):
+        for i in range(1, 1000000000):
             o, r, d, info = env.step([0, 0])
+
+            cost += info["cost"]
             
             # Action space is of form (float, float) -> Tuple
             # It encodes the necessary info about vehicle movement
@@ -78,7 +84,7 @@ if __name__ == "__main__":
                 img = np.squeeze(o['image'][:,:,:,0]*255).astype(np.uint8)
                 img = img[...,::-1].copy() # convert to rgb
                 img = Image.fromarray(img)
-                root_dir = os.path.join(os.getcwd(), 'dataset_with_traffic', 'train')
+                root_dir = os.path.join(os.getcwd(), 'dataset', 'val')
                 img_path = os.path.join(root_dir, str(action_space) + ".png")
                 img.save(str(img_path))
             
@@ -89,6 +95,9 @@ if __name__ == "__main__":
                 }
             )
             if d and info["arrive_dest"]:
+                print(cost)
+                print('Execution time: ', time.time()-st, ' seconds')
+                break
                 env.reset()
                 env.current_track_vehicle.expert_takeover = True
 
@@ -98,3 +107,5 @@ if __name__ == "__main__":
         raise e
     finally:
         env.close()
+        print(cost)
+        print('Execution time: ', time.time()-st, ' seconds')

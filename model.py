@@ -249,6 +249,7 @@ class ViT(nn.Module):
         return out
 
 class ViT_with_speed(nn.Module):
+  
     "Implements Vision Transfromer"
     def __init__(self, *, 
                  image_size,
@@ -319,6 +320,85 @@ class ViT_with_speed(nn.Module):
 
         res = torch.cat((steering, accel, speed), dim=-1)
 
+        # (batch_size,dim)
+        action = self.mlp_head(res)
+    
+        return action
+    
+class ViT_V2(nn.Module):
+    "Implements Vision Transfromer"
+    def __init__(self, *, 
+                 image_size,
+                 patch_size, 
+                 num_classes, 
+                 dim, 
+                 depth, 
+                 heads, 
+                 mlp_dim, 
+                 pool = 'cls', 
+                 channels = 3, 
+                 dim_head = 64, 
+                 dropout = 0., 
+                 emb_dropout = 0.,
+                ):
+        super().__init__()
+
+        image_height, image_width = pair(image_size)
+        patch_height, patch_width = pair(patch_size)
+
+        assert image_height % patch_height == 0 and image_width % patch_width == 0, 'Image dimensions must be divisible by the patch size.'
+
+        num_patches = 0
+        patch_dim = 0
+        
+        
+        num_patches = int((image_height/patch_height) * (image_width/patch_width))
+        patch_dim = patch_height * patch_width * channels
+        
+        assert pool in {'cls', 'mean'}, 'pool type must be either cls (cls token) or mean (mean pooling)'
+        self.pool = pool
+
+        self.transformers = nn.ModuleList([])
+
+        self.to_path_embedding = Tokenization_layer(dim, patch_dim, patch_height, patch_width)
+        self.pos_embedding = nn.Parameter(torch.randn(num_patches+3, dim), True)
+        self.cls_token = nn.Parameter(torch.randn((2, dim)), True) # one for steering and one for accel
+        self.dropout = nn.Dropout(emb_dropout)
+
+        self.transformers = nn.ModuleList([Transformer(dim, heads, dim_head, mlp_dim, dropout) for i in range(depth)])
+
+        self.mlp_head = nn.Sequential(
+            nn.LayerNorm(3*dim),
+            nn.Linear(3*dim, 128),
+            nn.Linear(128, num_classes)
+        )
+
+
+        
+    def forward(self, img, speed):
+        # (batch_size,C,H,W)
+        out = self.to_path_embedding(img)
+        # (batch_size, num_of_patches, dim_of_each_patch)
+
+        # first add speed token of size (batch_size, dim_of_each_patch)
+        out = torch.cat((out, speed.unsqueeze(dim=1)), 1)
+
+        # (batch_size, num_of_patches+1, dim_of_each_patch)
+        cls_token_repeated = self.cls_token.repeat((out.shape[0], 1, 1))
+
+        out = torch.cat((out, cls_token_repeated), 1)
+        
+        out += self.pos_embedding
+        out = self.dropout(out)
+        # (batch_size,N+3,dim)
+        for each_transformer_block in self.transformers:
+          out = each_transformer_block(out)
+
+        accel = torch.squeeze(out[:, -1, :])
+        steering = torch.squeeze(out[:, -2, :])
+        speed = torch.squeeze(out[:, -3, :])
+
+        res = torch.cat((steering, accel, speed), dim=-1)
         # (batch_size,dim)
         action = self.mlp_head(res)
     
