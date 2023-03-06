@@ -24,17 +24,13 @@ from rgb_policy_V2 import RGBPolicy_V2
 
 import time
 
-PRINT_IMG = False
-SAMPLING_INTERVAL = 8
-
-
 if __name__ == "__main__":
     config = dict(
         # controller="joystick",
         use_render=True,
         offscreen_render=True,
         manual_control=True,
-        traffic_density=0,
+        traffic_density=0.2,
         environment_num=100,
         random_agent_model=False,
         start_seed=random.randint(0, 1000),
@@ -48,7 +44,7 @@ if __name__ == "__main__":
             BaseMap.GENERATE_TYPE: MapGenerateMethod.BIG_BLOCK_SEQUENCE,
             #BaseMap.GENERATE_CONFIG: "SCCSCCS",  # it can be a file path / block num / block ID sequence
             BaseMap.GENERATE_CONFIG: "SCCSCCS",
-            BaseMap.LANE_WIDTH: 3.25,
+            BaseMap.LANE_WIDTH: 4,
             BaseMap.LANE_NUM: 1,
             "exit_length": 50,
         },
@@ -77,17 +73,6 @@ if __name__ == "__main__":
             # It encodes the necessary info about vehicle movement
             action_space = (info['steering'], info['acceleration'], info['velocity'])
             #print(action_space)
-            
-            # Change PRINT_IMG to True if recording FPV
-            # Change step_size to set sampling rate
-            # Image saved is named by the action
-            if PRINT_IMG and i%SAMPLING_INTERVAL == 0:
-                img = np.squeeze(o['image'][:,:,:,0]*255).astype(np.uint8)
-                img = img[...,::-1].copy() # convert to rgb
-                img = Image.fromarray(img)
-                root_dir = os.path.join(os.getcwd(), 'dataset', 'val')
-                img_path = os.path.join(root_dir, str(action_space) + ".png")
-                img.save(str(img_path))
             
 
             env.render(
