@@ -34,7 +34,7 @@ if __name__ == "__main__":
         use_render=True,
         offscreen_render=True,
         manual_control=True,
-        traffic_density=0,
+        traffic_density=0.1,
         environment_num=100,
         random_agent_model=False,
         start_seed=random.randint(0, 1000),

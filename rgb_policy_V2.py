@@ -16,7 +16,7 @@ class RGBPolicy_V2(BasePolicy):
 
     #MAX_SPEED = 40
     # PATH = "model_vit_V2_2k_grayscale.pt"
-    PATH = "model_vit_V2_with_traffic_myL1Loss.pt"
+    PATH = "model_vit_V2_with_traffic_myL1Loss (2).pt"
     
     def __init__(self, control_object, random_seed):
         super(RGBPolicy_V2, self).__init__(control_object=control_object, random_seed=random_seed)
