@@ -25,7 +25,7 @@ from rgb_policy_V2 import RGBPolicy_V2
 import time
 
 PRINT_IMG = False
-SAMPLING_INTERVAL = 15
+SAMPLING_INTERVAL = 8
 
 
 if __name__ == "__main__":
@@ -46,8 +46,9 @@ if __name__ == "__main__":
         random_lane_num=False,
         map_config={
             BaseMap.GENERATE_TYPE: MapGenerateMethod.BIG_BLOCK_SEQUENCE,
-            BaseMap.GENERATE_CONFIG: "SCCSCCS",  # it can be a file path / block num / block ID sequence
-            BaseMap.LANE_WIDTH: 4,
+            #BaseMap.GENERATE_CONFIG: "SCCSCCS",  # it can be a file path / block num / block ID sequence
+            BaseMap.GENERATE_CONFIG: "SCCSCCS",
+            BaseMap.LANE_WIDTH: 3.25,
             BaseMap.LANE_NUM: 1,
             "exit_length": 50,
         },

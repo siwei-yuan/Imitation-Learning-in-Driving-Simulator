@@ -60,7 +60,10 @@ class RGBPolicy_V2(BasePolicy):
         action[2] = action[2]*7.288086708484034 + 37.906848060080954
         
         if steering < 0:
-            steering *= 0.85
+            steering *= 0.83
+        else:
+            steering *= 0.93
+            
 
         print("MODEL PREDICTION:")
         print(action)
