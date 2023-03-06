@@ -15,7 +15,8 @@ from direct.gui.OnscreenImage import OnscreenImage
 class RGBPolicy_V2(BasePolicy):
 
     #MAX_SPEED = 40
-    PATH = "model_vit_V2_2k_grayscale.pt"
+    # PATH = "model_vit_V2_2k_grayscale.pt"
+    PATH = "model_vit_V2_with_traffic_myL1Loss.pt"
     
     def __init__(self, control_object, random_seed):
         super(RGBPolicy_V2, self).__init__(control_object=control_object, random_seed=random_seed)
