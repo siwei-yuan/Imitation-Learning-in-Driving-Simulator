@@ -23,7 +23,7 @@ from metadrive.policy.idm_policy import IDMPolicy
 
 import time
 
-SAMPLING_INTERVAL = 8
+SAMPLING_INTERVAL = 2
 
 if __name__ == "__main__":
     config = dict(
@@ -31,31 +31,32 @@ if __name__ == "__main__":
         use_render=True,
         offscreen_render=True,
         manual_control=True,
-        traffic_density=0.1,
+        traffic_density=0.12,
         environment_num=100,
         random_agent_model=False,
         start_seed=random.randint(0, 1000),
         vehicle_config = dict(image_source="rgb_camera", 
-                              rgb_camera= (128 , 128),
+                              rgb_camera= (256 , 256),
                               stack_size=1),
         block_dist_config=PGBlockDistConfig,
-        random_lane_width=True,
+        random_lane_width=False,
         random_lane_num=False,
         map_config={
             BaseMap.GENERATE_TYPE: MapGenerateMethod.BIG_BLOCK_SEQUENCE,
             #BaseMap.GENERATE_CONFIG: "SCCSCCS",  # it can be a file path / block num / block ID sequence
-            BaseMap.GENERATE_CONFIG: "SCCCSCCCSCCCS",
+            BaseMap.GENERATE_CONFIG: "SCCSCS",
             BaseMap.LANE_WIDTH: 4,
             BaseMap.LANE_NUM: 1,
             "exit_length": 50,
         },
+        # agent_policy = IDMPolicy
     )
     env = MetaDriveEnv(config)
 
     imgs = []
     frames = []
 
-    start_recording = False
+    start_recording = True
 
     try:
         o = env.reset()
@@ -64,7 +65,10 @@ if __name__ == "__main__":
         assert isinstance(o, dict)
         print("The observation is a dict with numpy arrays as values: ", {k: v.shape for k, v in o.items()})
         #for i in range(1, 31):
-        for i in range(1, 1000000000):
+
+        trial = 0
+        time_id = 0
+        for i in range(1, 100000000000):
             o, r, d, info = env.step([0, 0])
             
             # Action space is of form (float, float) -> Tuple
@@ -75,16 +79,14 @@ if __name__ == "__main__":
             # Change PRINT_IMG to True if recording FPV
             # Change step_size to set sampling rate
             # Image saved is named by the action
-            if start_recording and info['acceleration'] < 0:
+            if start_recording and i%SAMPLING_INTERVAL == 0:
                 img = np.squeeze(o['image'][:,:,:,0]*255).astype(np.uint8)
                 img = img[...,::-1].copy() # convert to rgb
                 img = Image.fromarray(img)
-                root_dir = os.path.join(os.getcwd(), 'dataset', 'train')
-                img_path = os.path.join(root_dir, str(action_space) + ".png")
+                root_dir = os.path.join(os.getcwd(), 'dataset_slow_fast', 'val')
+                img_path = os.path.join(root_dir, str(trial)+"_"+str(time_id)+str(action_space) + ".png")
                 img.save(str(img_path))
-            
-            if keyboard.is_pressed('q'):  # if key 'q' is pressed 
-                start_recording = True
+                time_id += 1
 
             env.render(
                 text={
@@ -92,7 +94,8 @@ if __name__ == "__main__":
                 }
             )
             if d and info["arrive_dest"]:
-                break
+                trial += 1
+                time_id = 0
                 env.reset()
                 env.current_track_vehicle.expert_takeover = True
 

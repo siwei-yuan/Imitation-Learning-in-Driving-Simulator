@@ -15,7 +15,7 @@ from direct.gui.OnscreenImage import OnscreenImage
 class RGBPolicy_V2(BasePolicy):
 
     #MAX_SPEED = 40
-    #PATH = "model_vit_V2_2k_grayscale.pt"
+    # PATH = "model_vit_V2_2k_grayscale.pt"
     PATH = "model_vit_V2_with_traffic_myL1Loss.pt"
     
     def __init__(self, control_object, random_seed):
@@ -52,7 +52,7 @@ class RGBPolicy_V2(BasePolicy):
         if 'traffic' not in RGBPolicy_V2.PATH:
             speed = (self.control_object.speed-37.906848060080954)/7.288086708484034
         else:
-            speed = (self.control_object.speed-34.87207030725652)/9.00441110109279
+            speed = (self.control_object.speed-33.509438109766435)/9.414135978506582
 
         speed = torch.unsqueeze(torch.tensor([speed]), 0)
         speed = speed.repeat(192, 1).t()
@@ -69,10 +69,16 @@ class RGBPolicy_V2(BasePolicy):
             else:
                 steering *= 0.93
         else:
-            steering = action[0] = action[0]*0.0623486115032152 - 0.003493989204100206
-            accel = action[1]= action[1]*0.362884652473442 + 0.28679734257090767
-            action[2] = action[2]*9.00441110109279 + 34.87207030725652
-    
+            steering = action[0] = action[0]*0.061663845943979764 -0.004523568948586146
+            accel = action[1]= action[1]*0.38669546742115574 +0.19225104442189161
+            action[2] = action[2]*9.414135978506582 + 33.509438109766435
+
+            if self.control_object.speed < 10:
+                accel = 5
+
+            if accel < 0:
+                accel *= 10
+
             
         print("MODEL PREDICTION:")
         print(action)
