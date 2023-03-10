@@ -21,6 +21,7 @@ from metadrive.component.map.pg_map import MapGenerateMethod
 
 from rgb_policy import RGBPolicy
 from rgb_policy_V2 import RGBPolicy_V2
+from rgb_policy_SF import RGBPolicy_SlowFast
 
 import time
 
@@ -35,7 +36,7 @@ if __name__ == "__main__":
         random_agent_model=False,
         start_seed=random.randint(0, 1000),
         vehicle_config = dict(image_source="rgb_camera", 
-                              rgb_camera= (128 , 128),
+                              rgb_camera= (256 , 256),
                               stack_size=1),
         block_dist_config=PGBlockDistConfig,
         random_lane_width=False,
@@ -48,7 +49,7 @@ if __name__ == "__main__":
             BaseMap.LANE_NUM: 1,
             "exit_length": 50,
         },
-        agent_policy = RGBPolicy_V2
+        agent_policy = RGBPolicy_SlowFast
     )
     env = MetaDriveEnv(config)
 
