@@ -1,8 +1,3 @@
-# CS188_Project
+# Exploring The Effectiveness Of Classification Models In Autonomous Driving Simulators Through Imitation Learning
 
-Environment: single lane, no traffic, only straight & curve roads
-
-Currently lable is (steering_angle * 100, acceleration * 10)
-When put back into the policy, need to scale them back.
-
-Model: pretrained ResNet
+This is the final [Report]([https://duckduckgo.com](https://ucladeepvision.github.io/CS188-Projects-2023Winter/2023/03/26/team02-driving-simulator.html))
